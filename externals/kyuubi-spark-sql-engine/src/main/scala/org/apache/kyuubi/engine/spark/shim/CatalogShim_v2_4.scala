@@ -34,8 +34,9 @@ class CatalogShim_v2_4 extends SparkCatalogShim {
       spark: SparkSession,
       catalogName: String,
       schemaPattern: String): Seq[Row] = {
+    val filteredSchemas = spark.sql("SHOW SCHEMAS").collect().map(r => r(0))
     (spark.sessionState.catalog.listDatabases(schemaPattern) ++
-      getGlobalTempViewManager(spark, schemaPattern)).map(Row(_, ""))
+      getGlobalTempViewManager(spark, schemaPattern)).intersect(filteredSchemas).map(Row(_, ""))
   }
 
   override protected def getGlobalTempViewManager(
@@ -52,7 +53,6 @@ class CatalogShim_v2_4 extends SparkCatalogShim {
       tableTypes: Set[String]): Seq[Row] = {
     val catalog = spark.sessionState.catalog
     val databases = catalog.listDatabases(schemaPattern)
-
     databases.flatMap { db =>
       val identifiers = catalog.listTables(db, tablePattern, includeLocalTempViews = false)
       catalog.getTablesByName(identifiers)

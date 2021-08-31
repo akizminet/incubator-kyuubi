@@ -118,7 +118,9 @@ class CatalogShim_v3_0 extends CatalogShim_v2_4 {
     val viewMgr = getGlobalTempViewManager(spark, schemaPattern)
     val catalog = getCatalog(spark, catalogName)
     val schemas = getSchemasWithPattern(catalog, schemaPattern)
-    (schemas ++ viewMgr).map(Row(_, catalog.name()))
+
+    val filteredSchemas = spark.sql("SHOW SCHEMAS").collect().map(r => r(0))
+    (schemas ++ viewMgr).intersect(filteredSchemas).map(Row(_, catalog.name()))
   }
 
   override def getCatalogTablesOrViews(
